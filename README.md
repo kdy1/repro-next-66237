@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Error Reproduction
 
-## Getting Started
+Production build of Next.js app throws error during client render when using SWC minifier.
 
-First, run the development server:
+## Steps
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Build project using `npm run build`.
+2. Start test server using `npm run start`.
+3. Open page on <http://localhost:3000>.
+4. View browser console output.
+
+Error in browser console:
+
+```text
+ReferenceError: e is not defined
+    at Object.jU (848-7d911d46e30bd3f0.js:16:18331)
+    at new k (848-7d911d46e30bd3f0.js:16:7592)
+    at 9705 (848-7d911d46e30bd3f0.js:16:7777)
+    at d (webpack-4b7c5c3f98de81bb.js:1:151)
+    at 9393 (page-e76bcc040321554e.js:1:223)
+    at Function.d (webpack-4b7c5c3f98de81bb.js:1:151)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Analysis
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```javascript
+// Minified code of "node_modules/@sbb-esta/lyne-components/development/core/dom.js"
+3712: function(t, o, r) {
+        r.d(o, {
+            $Q: function() {
+                return l
+            },
+            Ev: function() {
+                return i
+            },
+            e_: function() {
+                return s
+            },
+            jU: function() {
+                return e    // <-- ReferenceError: e is not defined
+            }
+        });
+        try {
+            "u" > typeof Intl && Intl.v8BreakIterator
+        } catch (t) {}
+        // This variable "n" (the "isBrowser" function) is what should be returned by "jU" function above
+        let n = ()=>"object" == typeof document && !!document
+          , s = ()=>n() && document.documentElement.getAttribute("dir") || "ltr";
+        function i(t, o, r) {
+            r ? t.setAttribute(o, r) : t.removeAttribute(o)
+        }
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Notice
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- Error only occurs when multiple different web components are used in a React component. Therefore the `TestComponent` uses `SbbToggle` and `SbbButton`. Rendering only `SbbToggle` does not produce the error.
+- Error only occurs when using SWC minifier in Next.js build (which is the default). Setting `swcMinify: false` in `next.config.mjs` makes the error go away.
